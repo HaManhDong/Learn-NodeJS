@@ -25,69 +25,91 @@ Hiểu được Node API để có thể tìm hiểu các adaptors, frameworks v
  
 ###***II - Chapter Overview***
 **Why?**
+
 Chương này đề cập đến vấn đề tại sao Node sử dụng event-driven programing và JavaScript với nhau? Tại sao JavaScript lại là ngôn ngữ được lựa chọn?
 
 **Starting up?**
+
 Cách để cài đặt Node và tải các Node modules sử dụng NPM
 
 **Understanding Basics**
+
 Cơ chế Node load các modules, tìm hiểu về Event Loop functions và … (chưa dịch) (How Node loads modules, how the Event Loop functions and what to look out for in order not to block it.)
 
 **API Quick Tour**
+
 Tìm hiểu sơ qua về các module chính bên trong Node
 
 **Utilities**
+
 Sử dụng Node một cách hữu ích
 
 **Buffers**
+
 Học cách tạo, chỉnh sửa và truy cập buffer data, đây là 1 phần cần thiết của Node
 
 **Event Emitter**
+
 Cách mà Event Emitter pattern được sử dụng trong Node và cách sử dụng Evetn Emitter pattern 1 cách mềm dẻo trong code của bạn
 
 **Timer**
+
 Tìm hiểu về timer API của Node
 
 **Low-level File System**
+
 Tìm hiểu về việc Node mở, đọc và viết các file
 
 **HTTP**
+
 Cách implementation HTTP server và client của Node
 
 **Streams**
+
 Nói về các lớp abstration trong node
 
 **TCP Server**
+
 Setup 1 TCP server tối thiểu (bare TCP server)
 
 **UNIX Sockets**
+
 Cách sử dụng UNIX sockets và sử dụng chúng để pass các file descriptors around
 
 **Datagrams (UDP)**
+
 Khả năng về datagram trong Node
 
 **Child Processes**
+
 Launching, watching, piping and killing other processes
 
 **Streaming HTTP Chunked Responses**
+
 Http trong Node là các luồng
 
 **TLS / SSL**
+
 Cách để cung cấp và hủy các luồng 1 cách an toàn(secure streams)
 
 **HTTPS**
+
 Cách xây dựng 1 HTTPS server hoặc client an toàn
 
 **Making Modules**
+
 Cách module hóa ứng dụng
 
 **Debugging**
+
 Cách debug Node app
 
 **Automated Unit Testing**
+
 Cách test từng phần trong các module
 
 **Callback Flow**
+
 Cách quản lý các callback phức tạp một cách chuẩn
  
 ###**III - WHY?**
@@ -96,10 +118,11 @@ Cách quản lý các callback phức tạp một cách chuẩn
 
 Event Loop là 1 mô hình phần mềm (software pattern) sử dụng non-blocking I/O (sự giao tiếp của mạng, file hoặc các process bên trong). Các chương trình traditional blocking dùng I/O giống như các hàm được gọi 1 cách thường lệ (regular functio calls), các tiến trình khác sẽ không được tiếp tục cho đến khi tiến trình của I/O thực hiện xong. Dưới đây là 1 đoạn giả mã về blocking I/O:
 ```sh
-var post = db.querry(‘SELECT * FROM posts where id = 1’);
-// tiến trình xử lý các câu lệnh bên dưới sẽ không được thực thi cho đến khi tiến trình xử lý câu lệnh truy vấn bên trên hoàn thành
-doSomethingWithPost(post);
-doSomethingElse();
+	var post = db.querry(‘SELECT * FROM posts where id = 1’);
+	// tiến trình xử lý các câu lệnh bên dưới sẽ không được thực thi cho 
+	// đến khi tiến trình xử lý câu lệnh truy vấn bên trên hoàn thành
+	doSomethingWithPost(post);
+	doSomethingElse();
 ```
 Vấn đề xảy ra trong đoạn mã code trên đó là trong khi truy vấn vào database đang được thực thi thì toàn bộ các process/thread không làm gì mà đợi cho đến khi có kết quả truy vấn trả về. Đây gọi là blocking. Kết quả cho câu lệnh truy vấn phải mất hàng nghìn chu trình của CPU, rendering ra toàn bộ process không được sử dụng trong suốt khoảng thời gian này. Các process nên được phục vụ ở các client request khác thay vì phải chờ đợi.
 
@@ -108,6 +131,7 @@ Blocking I/O khiến bạn không thể thực hiện các luồng I/O song song
 Có 2 cách để xử lý vấn đề blocking này, nghĩa là làm cho các tiến trình khác vẫn hoạt động bình thường trong khi chờ, đó là:  tạo nhiều call stacks hoặc sử dụng event callbacks.
 
 **Cách 1: tạo nhiều các call stack**
+
 Để chương trình của bạn có thể xử lý nhiều các tiến trình I/O đồng thời, bạn phải có nhiều các call stack. Để tạo ra nhiều call stack, bạn có thể sử dụng các thread hoặc 1 số loại của cooperative multi-threading scheme như co-routines, fibers, continuations…
 
 Mô hình đa luồng này rất khó để định dạng, hiểu và debug, lý do chính là vì sự phức tạp về đồng bộ trong khi đang truy cập và thay đổi trạng thái của các tiến trình. Bạn sẽ không thể nào biết được khi nào thì thread mà bạn đang chạy sẽ bị tạm dừng để nhường CPU, điều này có thể dẫn tới các lỗi kỳ quặc và khó để giải quyết.
@@ -115,28 +139,32 @@ Mô hình đa luồng này rất khó để định dạng, hiểu và debug, l�
 Có 1 cách xử lý khác trong trường hợp này là sử dụng cooperative multi-threading. Cooperative multi-threading là 1 “trick” để bạn có thể có nhiều hơn 1 stack, và mỗi thread sẽ có 1 bộ như là bảng thời gian để có thể thông báo thời gian của thread đó tới các thread khác. Điều này có thể tránh được vấn đề bất đồng bộ nhưng lại dẫn tới sự phức tạp và error-prone, khi thread tính toán sai thời gian xử lý của nó và gửi đi cho các thread khác. 
 
 **Cách 2: sử dụng event-driven I/O**
+
 Event-driven I/O là 1 scheme để ta có thể ‘đăng kí’ các callback function, các callback function này sẽ được gọi lại khi có 1 I/O event. 
 Một event callback là 1 function được gọi lại khi có một tín hiệu nào đó xảy ra như: kết quả trả về từ câu lệnh truy vấn database đã có…
 Để sử dụng event callback trong ví dụ trước, ta có thể thay đổi lại đoạn giả mã như sau:
 
 ```sh
-callback = function(post) {
-	doSomethingWithPost(post); // hàm này sẽ chỉ được thực thi khi db.query trả về kết quả
-};
-db.query(‘SELECT * FROM posts where id=1’, callback);
-doSomethingElese(); // hàm này sẽ được thực thi mà không phụ thuộc vào trạng thái trả về từ câu lệnh db.query
+	callback = function(post) {
+		doSomethingWithPost(post); 
+		// hàm này sẽ chỉ được thực thi khi db.query trả về kết quả
+	};
+	db.query(‘SELECT * FROM posts where id=1’, callback);
+	doSomethingElese(); // hàm này sẽ được thực thi mà 
+	// không phụ thuộc vào trạng thái trả về từ câu lệnh db.query
 ```
 
 Trong đoạn code trên, ta đã định nghĩa 1 function để gọi lại khi quá trình truy vấn db hoàn thành, để thực hiện được gọi lại function này thì ta truyền function này vào là 1 tham số trong câu lệnh truy vấn. Khi đó quá trình truy vấn db sẽ chịu trách nhiện về việc thực thi hàm callback khi kết quả trả về đã sẵn sàng.
 Bạn có thể sử dụng một cách viết khác để tạo ra 1 function callback như sau:
 
 ```sh
-db.query(‘SELECT * FROM posts where id=1’,
-	      function(post) {
-doSomethingWithPost(post); // hàm này sẽ được thực thi khi có kết quả truy vấn trả về.
-      }
-);
-doSomethingElse(); //hàm nãy sẽ được thực thi mà không phụ thuộc vào trạng thái trả về của lệnh db.query
+	db.query(‘SELECT * FROM posts where id=1’,function(post) {
+		doSomethingWithPost(post); // hàm này sẽ được thực thi 
+		// khi có kết quả truy vấn trả về.
+	      }
+	);
+	doSomethingElse(); //hàm nãy sẽ được thực thi mà không 
+	// phụ thuộc vào trạng thái trả về của lệnh db.query
 ```
 
 Trong khi db.query() đang thực thi, tiến trình sẽ tiếp tục chạy lệnh doSomethingElse(), và thậm chí có thể phục vụ được 1 request mới từ client.
@@ -150,7 +178,7 @@ Closures là các function kế thừa các biến từ môi trường kèm theo
 Trong các trình duyệt, nếu bạn muốn bắt một sự kiện, ví dụ như click vào 1 button, bạn sẽ phải làm gì đó tương tự như sau:
 
 ```sh
-var clickCount  = 0;
+	var clickCount  = 0;
 	document.getElementById(‘mybutton’).onclick = function() {
 		clickCount ++ ;
 		alert(‘Clicked ‘ + clickCount + ‘ times.’);
@@ -169,13 +197,13 @@ Trong cả 2 ví dụ, ta đã gán hoặc đã truyền vào 1 function với v
 Ở trong ví dụ trên, chúng ta đang sử dụng ‘clickCount’ là biến toàn cục, để chúng ta có thể lưu số lần mà người dùng đã click vào 1 button. Chúng ta cũng có thể tránh việc có 1 biến toàn cục sẽ làm ảnh hưởng tới sự nghỉ ngơi của hệ thống (the rest of the system), bằng cách bao biến này bên trong 1 closure khác, làm cho biến ‘clickCount’ chỉ được truy cập bên trong closure mà chúng ta đã tạo ra:
 
 ```sh
-(function() {
-	var clickCount  = 0;
-	$(‘button#mybutton’).click(function() {
-		clickCount ++;
-		alert(‘Clicked ‘ + clickCount + ‘ times.’);
-	});
-})();
+	(function() {
+		var clickCount  = 0;
+		$(‘button#mybutton’).click(function() {
+			clickCount ++;
+			alert(‘Clicked ‘ + clickCount + ‘ times.’);
+		});
+	})();
 ```
 
 Ở dòng cuối cùng trong đoạn code trên, chúng ta đã thêm cặp dấu ngoặc () để làm cho function sẽ được thực thi ngay sau khi đã định nghĩa xong. Nếu điều này là lạ lẫm đối với bạn thì đừng lo lắng, chúng ta sẽ cover đến parttern này sau.
