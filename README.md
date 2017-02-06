@@ -295,3 +295,133 @@ hoặc khai báo đơn giản bằng cách sau nếu ta không cần dùng funct
 ```
 
 ####**Function are first-class objects**
+
+Trong thực tế, không có second-class objects trong JavaScript (second-class objects là các object có thể đóng vai trò là tham số trong 1 function nhưng không thể gán nó cho 1 biến hoặc đóng vai trò là giá trị trả về của 1 hàm). JavaScript là ngôn ngữ hướng đối tượng hoàn toàn, nghĩa là trong JavaScript, mọi thứ đều là đối tượng. Do đó, 1 function cũng là 1 đối tượng và ta có thể thiết lập các thuộc tính, truyền vào nó các tham số và trả về kết quả.
+
+Ví dụ:
+
+```sh
+	1 var schedule = function(timeout, callbackfunction) {
+	2	return {
+	3		start: function() {
+	4			setTimeout(callbackfunction, timeout);
+	5		}
+	6	};
+	7 };
+
+	8 (function () {
+	9	 var timeout = 1000; // 1s
+	10	 var count = 0;
+	11	 shcedule(timeout, function doStuff(){
+	12	 	 console.log( ++ count);
+	13	 	 schedule(timeout, doStuff);
+	14	 }).start();
+	15 })();
+	16
+	17 // các biến timeout và count sẽ không tồn tại ở 
+	18 // scope này
+```
+Trong ví dụ trên, ta đã tạo ra 1 function và lưu nó trong 1 biến gọi là ***schedule***. Function này đơn giản chỉ để trả về 1 object có 1 thuộc tính là ***start***. Giá trị của thuộc tính ***start*** này cũng là 1 function, mà khi được gọi, nó sẽ thiết lập 1 khoảng thời gian chờ (timeout) để gọi đến 1 function, khoảng thời gian chờ này được truyền vào như là 1 tham số giống như ***callbackfunction***. Khoảng thời gian chờ này sẽ lên lịch cho 1 callback function được gọi lại sau khoảng thời gian trễ là 1s (chính là giá trị của biến timeout).
+
+Ở dòng code thứ 9, chúng ta khai báo 1 function để nó sẽ được thực thi ngay sau khi được định nghĩa xong (dòng 16). Đây là 1 cách bình thường để tạo ra 1 scope mới trong JavaScript. bên trong scope mới này, ta tạo 2 biến là ***timeout*** và ***count*** (dòng 10 và 11). Lưu ý rằng ta không thể truy cập vào 2 biến này từ scope bên ngoài.
+
+Sau đó, ở dòng 12, chúng ta gọi lại function ***schedule***, và truyền vào đó tham số đầu tiên là biến ***timeout*** và tham số thứ 2 là function ***doStuff***. Khi timeout xảy ra, function này sẽ tăng biến ***count*** thêm 1 đơn vị và hiển thị nó lên, đồng thời gọi lại function ***schedule***.
+
+Trong ví dụ trên, ta đã: truyền các function với chức năng làm đối số, tạo ra function trong scope mới, tạo function để phục vụ các callback không đồng bộ và returning 1 function. Đồng thời ta cũng đã đưa ra khái niệm về đóng gói (bằng cách ẩn các biến địa phương trong 1 scope khác đối với scope ngoài) và gọi đệ quy function.
+
+Trong JavaScript, bạn thậm chí có thể thiết lập và truy cập vào 1 biến ngay bên trong 1 function như sau:
+```sh
+	var myFunction = function() {
+		// do something
+	};
+	myFunction.someProperty = 'abc';
+	console.log(myFunction.someProperty);
+	// #=> "abc"
+```
+JavaScript thật sự là 1 ngôn ngữ mạnh mẽ, và nếu bạn chưa tìm hiểu nó thì hãy tìm hiểu nó ngay bây giờ!
+
+####**JSHint**
+JSHint không được cover trong cuốn sách này, nhưng JavaScript vẫn thực sự có những phần xấu, và ta cần phải tránh nó bằng mọi giá.
+
+Một tool đã được ra đời để hỗ trợ JavaScript, đó là JSHint. JSHint sẽ phân tích các file JavaScript và xuất ra một loạt các error và các warning, bao gồm cả 1 số lạm dụng được biết đến trong JavaScript, chẳng hạn như sử dụng các biến ***globallyscoped*** (như khi bạn quên từ khóa var), và các giá trị bên trong vòng lặp mà được sử dụng trong các callback, và nhiều tính năng hữu ích khác.
+
+JSHint có thể được cài đặt như sau:
+```sh
+	$ npm install -g jshint
+```
+Để run 1 file bằng JSHint, ta làm như sau:
+```sh
+	$ jshint myFile.js
+```
+
+####**Handing callback**
+Trong Node, bạn có thể thực thi các function của bạn một cách không đồng bộ. Nghĩa là bạn có thể tự định nghĩa một function làm một chức năng nào đó, sau đó gọi lại nó qua callback function. Bạn sẽ gọi đến callback function khi luồng I/O thực hiện xong:
+```sh
+	1 var myAsyncFunc = function(argument1, argument2, callback){
+	2		//giả sử 1 số luồng I/O đã xong
+	3		setTimeout(function() {
+	4			//1s sau, khi ta đã hoàn thành xong các 
+	5			// luồng I/O thì ta sẽ gọi đến callback
+	6			callback();
+	7		}, 1000)
+	8 }
+```
+Ở dòng số 3, ta đã định nghĩa 1 function là ***setTimeout*** để mô phỏng sự chậm trễ và không đồng bộ của 1 luồng I/O.
+
+Function ***setTimeout*** sẽ gọi đến tham số đầu tiên (chính là function mà ta đã định nghĩa với vai trò là tham số bên trong function setTimeout - ở đây ta tạm gọi là inline function) sau khi 1s (tham số thứ 2: 1000) trôi qua. 
+
+Inline function (function đóng vai trò là tham số thứ 1 trong function ***setTimeout***) sau đó sẽ gọi đến callback được truyền vào giống như là đối số thứ 3 của function ***myAsyncFunc***, để thông báo cho người gọi các hoạt động đã kết thúc.
+
+Tip: để tuân thủ theo các quy ước của Node, function này sẽ nhận được thông báo lỗi (hoặc null nếu không có lỗi) là tham số đầu tiên, và sau đó là 1 số các tham số thực nếu bạn muốn thêm vào. (Xem ví dụ dưới)
+```sh
+	fs.open('path/to/file', function(err, fd) {
+		if(err) {
+			// handle err
+			return;
+		}
+		console.log('opened file and got file descriptor ' + fd);
+	})
+```
+Ở trong ví dụ trên, ta đã sử dụng 1 Node API function là fs.open nhận 2 tham số đầu vào là đường dẫn của file và 1 function sẽ được gọi đến với một lỗi nào đó hoặc giá trị null trong tham số thứ nhất, và tham số thứ 2 là nội dung của file.
+
+
+###**IV - Starting up**
+
+####**Install Node**
+Nếu máy tính của bạn chưa có Node hoặc bạn muốn cập nhật phiên bản mới nhất của Node thì bạn có thể truy cập vào trang  http://nodejs.org và nhấp vào chỗ Install để cài đặt phiên bản mới nhất của Node. 
+
+Tùy thuộc vào nền tảng hệ điều hành mà bạn đang dùng để bạn chọn package cài đặt phù hợp. 
+
+Sau khi cài đặt xong, bạn nên kiểm tra lại version của Node đã được cài bằng dòng lệnh:
+```sh
+	$ node -v
+	v0.8.12
+```
+Bạn có thể có 2 cách để dùng Node thực thi, đó là thông qua CLI (command line interface) hoặc qua file.
+
+Nếu sử dụng CLI, bạn chỉ cần gõ:
+```sh
+	$ node
+```
+và bạn sẽ nhận được 1 JavaScript command line prompt để bạn gõ các câu lệnh JavaScript và thực thi các câu lệnh đó. 
+
+Bạn cũng có thể dùng Node để chạy 1 file JavaScript. Đầu tiên Node sẽ parse và evaluate các câu lệnh JavaScript trong file đó, sau khi xong thì nó sẽ bước vào event loop. Một khi vào trong event loop, Node sẽ thoát nếu không có gì để làm hoặc sẽ chờ đợi và lắng nghe các events.
+
+Bạn có thể dùng Node để run file như sau:
+```sh
+	$ node myfile.js
+```
+hoặc nếu muốn, bạn cũng có thể làm cho file của bạn thực thi 1 cách trực tiếp bằng cách thêm quyền vào file đó như sau:
+```sh
+	$ chmod o+x myfile.js
+```
+sau đó chèn vào dòng đầu tiên của file dòng sau:
+```sh
+	#!/usr/bin/env node
+```
+Bây giờ bạn có thể thực thi file của bạn 1 cách trực tiếp:
+```sh
+	 $ ./myfile.js
+```
+
+####**NPM - Node Package Manager**
