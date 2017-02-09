@@ -75,7 +75,7 @@ Theo lý thuyết thì khi hàm setTimeout được thực thi, nó tạo ra 1 k
 
 Nhưng thực tế không phải như vậy, trong chương trình trên, Node sẽ không bao giờ gọi lại được callback function của hàm setTimeout bởi vì event loop đã bị tắc trong vòng lặp vô hạn while. Do là vòng lặp vô hạn nên event loop sẽ bị block ở đây, không thể có 1 'cơ hội' để xử lý các event khác.
  
- ####**Understanding Modules**
+####**Understanding Modules**
  
 Các client-side JavaScript cũng có một nhược điểm, đó là do các namespace thông thường chia sẻ tất cả các script, điều này có thể dẫn tới các xung đột và các lỗ hổng bảo mật. 
 
